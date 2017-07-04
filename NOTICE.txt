@@ -1,0 +1,13 @@
+Amazon Rekognition Video Analyzer
+Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+**********************
+THIRD PARTY COMPONENTS
+**********************
+This software includes third party software subject to the following copyrights:
+
+* vuesjs - The MIT License (MIT) - Copyright (c) 2013-present, Yuxi (Evan) You
+
+* axios - The MIT License (MIT) - Copyright (c) 2014 Matt Zabriskie
+
+* pytz - The MIT License (MIT) - Copyright (c) 2003-2005 Stuart Bishop <stuart@stuartbishop.net>

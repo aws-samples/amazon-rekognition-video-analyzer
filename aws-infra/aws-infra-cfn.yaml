@@ -1,0 +1,349 @@
+# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Licensed under the Amazon Software License (the "License"). You may not use this file except in compliance with the License. A copy of the License is located at
+#     http://aws.amazon.com/asl/
+# or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: The CloudFormation template for AWS resources required by amazon rekognition video analyzer. 
+
+Parameters:
+
+  SourceS3BucketParameter: 
+    Type: String
+    MinLength: "1"
+    Description: "Enter the name of the S3 bucket containing source .zip files."
+
+  ImageProcessorSourceS3KeyParameter:
+    Type: String
+    MinLength: "1"
+    Description: "Enter the name of the S3 key of Image Processor lambda function .zip file."
+
+  FrameFetcherSourceS3KeyParameter:
+    Type: String
+    MinLength: "1"
+    Description: "Enter the name of the S3 key of Frame Fetcher lambda function .zip file."
+
+  FrameFetcherLambdaFunctionName:
+    Type: String
+    Default: "framefetcher"
+    Description: "Name of the Lambda function that fetches frame metadata from DynamoDB."
+
+  ImageProcessorLambdaFunctionName:
+    Type: String
+    Default: "imageprocessor"
+    Description: "Name of the Lambda function that receives and processes frame images."
+
+  FrameFetcherApiResourcePathPart:
+    Type: String
+    Default: "enrichedframe"
+    Description: "Path part for the API Gateway resource to access FrameFetcher lambda function."
+
+  KinesisStreamNameParameter:
+    Type: String
+    Default: "FrameStream"
+    Description: "Name of the Kinesis stream to receive frames from video capture client."
+  
+  FrameS3BucketNameParameter:
+    Type: String
+    MinLength: "1"
+    Description: "Name of the S3 bucket for storage of captured frames."
+
+  DDBTableNameParameter: 
+    Type: String
+    Default: "EnrichedFrame"
+    Description: "Name of the DynamoDB table for persistence & querying of captured frames metadata."
+
+  DDBGlobalSecondaryIndexNameParameter:
+    Type: String
+    Default: "processed_year_month-processed_timestamp-index"
+    Description: "Name of the DDB Global Secondary Index for querying of captured frames by Web UI."
+
+  ApiGatewayRestApiNameParameter:
+    Type: String
+    Default: "RtRekogRestApi"
+    Description: "Name of the API Gateway Rest API."
+
+  ApiGatewayStageNameParameter:
+    Type: String
+    Default: "development"
+    Description: "Name of the API Gateway stage."
+
+  ApiGatewayUsagePlanNameParameter:
+    Type: String
+    Default: "development-plan"
+    Description: "Name of the API Gateway Usage Plan."
+
+Resources:
+
+  FrameS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties: 
+      BucketName: !Ref FrameS3BucketNameParameter
+
+  ImageProcessorLambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonKinesisReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonRekognitionReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+      Path: "/"
+      RoleName: "ImageProcessorLambdaExecutionRole"
+  
+  FrameFetcherLambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+      Path: "/"
+      RoleName: "FrameFetcherLambdaExecutionRole"
+
+  FrameStream:
+    Type: "AWS::Kinesis::Stream"
+    Properties: 
+      Name: !Ref KinesisStreamNameParameter
+      ShardCount: 1
+
+  ImageProcessorLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "imageprocessor"
+      Description: "Function processes frame images fetched from a Kinesis stream."
+      Handler: "imageprocessor.handler"
+      Role: !GetAtt ImageProcessorLambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref SourceS3BucketParameter
+        S3Key: !Ref ImageProcessorSourceS3KeyParameter
+      Timeout: 40 #seconds
+      MemorySize: 128 #MB
+      Runtime: python2.7
+    DependsOn: 
+      - FrameStream
+      - ImageProcessorLambdaExecutionRole
+
+  EventSourceMapping:
+    Type: "AWS::Lambda::EventSourceMapping"
+    Properties: 
+      EventSourceArn: !GetAtt FrameStream.Arn
+      FunctionName: !GetAtt ImageProcessorLambda.Arn
+      StartingPosition: "TRIM_HORIZON"
+    DependsOn:
+      - FrameStream
+      - ImageProcessorLambda
+
+  FrameFetcherLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "framefetcher"
+      Description: "Function responds to a GET request by returning a list of frames up to a certain fetch horizon."
+      Handler: "framefetcher.handler"
+      Role: !GetAtt FrameFetcherLambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref SourceS3BucketParameter
+        S3Key: !Ref FrameFetcherSourceS3KeyParameter
+      Timeout: 10 #seconds
+      MemorySize: 128 #MB
+      Runtime: python2.7
+    DependsOn:
+      - FrameFetcherLambdaExecutionRole
+
+  EnrichedFrameTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: !Ref DDBTableNameParameter
+      KeySchema:
+        - KeyType: "HASH"
+          AttributeName: "frame_id"
+      AttributeDefinitions:
+        - AttributeName: "frame_id"
+          AttributeType: "S"
+        - AttributeName: "processed_timestamp"
+          AttributeType: "N"
+        - AttributeName: "processed_year_month"
+          AttributeType: "S"
+      ProvisionedThroughput:
+            WriteCapacityUnits: 10
+            ReadCapacityUnits: 10
+      GlobalSecondaryIndexes:
+        - IndexName: !Ref DDBGlobalSecondaryIndexNameParameter
+          Projection:
+            ProjectionType: "ALL"
+          ProvisionedThroughput:
+            WriteCapacityUnits: 10
+            ReadCapacityUnits: 10
+          KeySchema:
+          - KeyType: "HASH"
+            AttributeName: "processed_year_month"
+          - KeyType: "RANGE"
+            AttributeName: "processed_timestamp"
+  
+  # API Gateway Resources
+  VidAnalyzerRestApi: 
+    Type: "AWS::ApiGateway::RestApi"
+    Properties:
+      Description: "The amazon rekognition video analyzer public API."
+      Name: !Ref ApiGatewayRestApiNameParameter
+    DependsOn: FrameFetcherLambda
+
+  EnrichedFrameResource: 
+    Type: "AWS::ApiGateway::Resource"
+    Properties: 
+      RestApiId: !Ref VidAnalyzerRestApi
+      ParentId: !GetAtt VidAnalyzerRestApi.RootResourceId
+      PathPart: !Ref FrameFetcherApiResourcePathPart
+
+  EnrichedFrameResourceGET:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref VidAnalyzerRestApi
+      ResourceId: !Ref EnrichedFrameResource
+      ApiKeyRequired: true
+      HttpMethod: GET      
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FrameFetcherLambda.Arn}/invocations
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          StatusCode: 200
+          ResponseParameters:
+            "method.response.header.Access-Control-Allow-Origin": true
+            "method.response.header.Access-Control-Allow-Methods": true
+            "method.response.header.Access-Control-Allow-Headers": true
+
+  # Mock integration to allow Cross-Origin Resource Sharing (CORS) 
+  # for Web UI to invoke API Gateway
+  EnrichedFrameResourceOPTIONS:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref VidAnalyzerRestApi
+      ResourceId: !Ref EnrichedFrameResource
+      ApiKeyRequired: false
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationHttpMethod: OPTIONS
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          "application/json": '{"statusCode": 200 }'
+        IntegrationResponses: 
+          - StatusCode: 200
+            ResponseParameters:
+              "method.response.header.Access-Control-Allow-Origin": "'*'"
+              "method.response.header.Access-Control-Allow-Methods": "'GET,OPTIONS'"
+              "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            ResponseTemplates:
+              "application/json": ''
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          StatusCode: 200
+          ResponseParameters:
+            "method.response.header.Access-Control-Allow-Origin": true
+            "method.response.header.Access-Control-Allow-Methods": true
+            "method.response.header.Access-Control-Allow-Headers": true
+
+  VidAnalyzerApiDeployment:
+    Type: "AWS::ApiGateway::Deployment"
+    Properties:
+      Description: "Public API endpoint of video analyzer."
+      RestApiId: !Ref VidAnalyzerRestApi
+    DependsOn:
+      - EnrichedFrameResourceGET
+      - EnrichedFrameResourceOPTIONS
+  
+  DevStage:
+    Type: "AWS::ApiGateway::Stage"
+    Properties:
+      DeploymentId: !Ref VidAnalyzerApiDeployment
+      Description: "API development stage of video analyzer."
+      RestApiId: !Ref VidAnalyzerRestApi
+      StageName: !Ref ApiGatewayStageNameParameter
+
+  DevUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      ApiStages:
+      - ApiId: !Ref VidAnalyzerRestApi
+        Stage: !Ref DevStage
+      Description: Development usage plan
+      UsagePlanName: !Ref ApiGatewayUsagePlanNameParameter
+    DeletionPolicy: Retain #Had to be added to avoid stack deletion failing due to association with DevStage.
+
+  VidAnalyzerApiKey: 
+    Type: "AWS::ApiGateway::ApiKey"
+    Properties: 
+      Name: "DevApiKey"
+      Description: "Video Analyzer Dev API Key"
+      Enabled: true
+    DependsOn: 
+      - VidAnalyzerApiDeployment
+
+  DevUsagePlanKey:
+    Type: "AWS::ApiGateway::UsagePlanKey"
+    Properties : 
+      KeyId: !Ref VidAnalyzerApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref DevUsagePlan
+
+  #Give API Gateway permission to invoke FrameFetcher lambda function.
+  LambdaInvokePermissionSTAR: 
+    Type: "AWS::Lambda::Permission"
+    Properties: 
+      FunctionName: !GetAtt FrameFetcherLambda.Arn
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Join [ "", ["arn:aws:execute-api:", !Ref "AWS::Region", ':', !Ref "AWS::AccountId", ':', !Ref VidAnalyzerRestApi, '/*/*/', !Ref FrameFetcherLambdaFunctionName]]
+    DependsOn:
+      - VidAnalyzerApiDeployment
+
+  LambdaInvokePermissionGET: 
+    Type: "AWS::Lambda::Permission"
+    Properties: 
+      FunctionName: !GetAtt FrameFetcherLambda.Arn
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Join [ "", ["arn:aws:execute-api:", !Ref "AWS::Region", ':', !Ref "AWS::AccountId", ':', !Ref VidAnalyzerRestApi, '/*/GET/', !Ref FrameFetcherApiResourcePathPart]]
+    DependsOn:
+      - VidAnalyzerApiDeployment
+
+
+Outputs:
+  #API Gateway endpoint Id
+  VidAnalyzerApiEndpoint:
+    Description: "Endpoint for invoking video analyzer API."
+    Value: !Ref VidAnalyzerApiDeployment
+  
+  #API Key Id
+  VidAnalyzerApiKey:
+    Description: "Key for invoking video analyzer API."
+    Value: !Ref VidAnalyzerApiKey
+
+

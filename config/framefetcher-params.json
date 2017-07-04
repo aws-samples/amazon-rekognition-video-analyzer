@@ -1,0 +1,9 @@
+{
+    "s3_pre_signed_url_expiry" : 2419200,
+
+    "ddb_table" : "EnrichedFrame",
+    "ddb_gsi_name" : "processed_year_month-processed_timestamp-index",
+
+    "fetch_horizon_hrs" : 24,
+    "fetch_limit" : 3
+}

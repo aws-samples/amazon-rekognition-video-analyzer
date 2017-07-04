@@ -1,0 +1,182 @@
+/* 
+Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+Licensed under the Amazon Software License (the "License"). You may not use this file except in compliance with the License. A copy of the License is located at
+    http://aws.amazon.com/asl/
+or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions and limitations under the License.
+ */
+@charset "UTF-8";
+@import url(https://fonts.googleapis.com/css?family=Open+Sans:300,400,700);
+
+body {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 300;
+  line-height: 1.42em;
+  color:#A7A1AE;
+  background-color:#1F2739;
+}
+
+.logo{
+  height: 1.6em;
+}
+
+h1 {
+  font-size:3em; 
+  font-weight: 300;
+  line-height:1em;
+  /* text-align: center; */
+  color: #4DC3FA;
+}
+
+h2 {
+  font-size:2em; 
+  font-weight: 300;
+  text-align: left;
+  display: block;
+  line-height:1em;
+  color: #FFF842;
+  margin-top: 0.2em;
+  margin-bottom: 0.8em;
+}
+
+.outer-grid {
+  display: grid;
+  /* grid-template-rows: 1fr; */
+  grid-template-columns: 80% 20%;
+  grid-gap: 10px;
+}
+
+.outer-grid > div {
+  /* background-color: red; */
+  /* color: white; */
+  /* font-size: 4vw; */
+  padding: 10px;
+}
+
+.inner-grid {
+  display: grid;
+  /* grid-template-columns: 1fr 1fr; */
+  grid-template-columns: 40% 60%;
+  grid-gap: 5px;
+  margin: 5px;
+}
+
+.inner-grid > div {
+  /* background: salmon; */
+  padding: 10px;
+}
+
+/* Background-color of the odd rows */
+div.inner-grid:nth-child(odd) {
+    background-color: #323C50;
+}
+
+/* Background-color of the even rows */
+div.inner-grid:nth-child(even) {
+    background-color: #2C3446;
+}
+
+.inner-grid-list{
+  border: 2px dashed;
+}
+
+.frame-image{
+  width: auto;
+  max-width: 230px;
+  max-height: 290px;
+  display: inline-block;
+  vertical-align: middle;
+  box-shadow: 2px 3px 5px #A7A1AE;
+}
+
+.rekog-label-list{
+    display: inline-block;
+    vertical-align: middle;  /* vertical alignment of the inline element */
+    /* font: 16px/1 Arial sans-serif;        /* <-- reset the font property */
+    -webkit-padding-start: 20px;    
+}
+
+.container {
+    /* text-align: center;  align the inline(-block) elements horizontally */
+    /* font: 0/0 a;         remove the gap between inline(-block) elements */
+ 
+}
+
+.container-img{
+    height: auto;
+    text-align: center;  /*align the inline(-block) elements horizontally*/
+    font: 0/0 a;         /* remove the gap between inline(-block) elements */
+    margin: 5px;
+}
+
+.container:before {    /* create a full-height inline block pseudo=element */
+    content: ' ';
+    /* display: inline-block; */
+    vertical-align: middle;  /* vertical alignment of the inline element */
+    height: 100%;
+}
+
+.container-img:before {    /* create a full-height inline block pseudo=element */
+    content: ' ';
+    display: inline-block;
+    vertical-align: middle;  /* vertical alignment of the inline element */
+    height: 100%;
+}
+
+/* The switch - the box around the slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {display:none;}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #2196F3;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
