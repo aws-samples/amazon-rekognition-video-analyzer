@@ -120,13 +120,20 @@ def deploylambda(* functions, **kwargs):
 
     if( not check_bucket_exists(src_s3_bucket_name)):
         print("Bucket %s not found. Creating in region %s." % (src_s3_bucket_name, region_name))
-        response = s3_client.create_bucket(
-            #ACL="authenticated-read",
-            Bucket=src_s3_bucket_name,
-            CreateBucketConfiguration={
-                "LocationConstraint": region_name
-            }
-        )
+
+        if( region_name == "us-east-1"):
+            s3_client.create_bucket(
+                # ACL="authenticated-read",
+                Bucket=src_s3_bucket_name
+            )
+        else:
+            s3_client.create_bucket(
+                #ACL="authenticated-read",
+                Bucket=src_s3_bucket_name,
+                CreateBucketConfiguration={
+                    "LocationConstraint": region_name
+                }
+            )
 
     for function in functions:
         
