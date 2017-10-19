@@ -305,7 +305,7 @@ The webuiserver command starts a local, lightweight, Python-based HTTP server on
 Here’s sample invocation of the command.
 
 ```bash
-pynt webuiserver[8080] # Starts lightweight HTTP Server on port 8080.
+pynt webuiserver # Starts lightweight HTTP Server on port 8080.
 ```
 
 ### The `videocaptureip` and `videocapture` build commands
