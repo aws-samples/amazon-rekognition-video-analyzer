@@ -2,13 +2,18 @@ Create a Serverless Pipeline for Video Frame Analysis and Alerting
 ========
 
 ## Introduction
-Imagine being able to capture live video streams, identify objects using deep learning, and then trigger actions or notifications based on the identified objects -- all with low latency and without a single server to manage.This is exactly what this project is going to help you accomplish with AWS. You will be able to setup and run a live video capture, analysis, and alerting solution prototype.
+Imagine being able to capture live video streams, identify objects using deep learning, and then trigger actions or notifications based on the identified objects -- all with low latency and without a single server to manage.
+
+This is exactly what this project is going to help you accomplish with AWS. You will be able to setup and run a live video capture, analysis, and alerting solution prototype.
 
 The prototype was conceived to address a specific use case, which is alerting based on a live video feed from an IP security camera. At a high level, the solution works as follows. A camera surveils a particular area, streaming video over the network to a video capture client. The client samples video frames and sends them over to AWS, where they are analyzed and stored along with metadata. If certain objects are detected in the analyzed video frames, SMS alerts are sent out. Once a person receives an SMS alert, they will likely want to know what caused it. For that, sampled video frames can be monitored with low latency using a web-based user interface.
 
 Here's the prototype's conceptual architecture:
 
-![Architecture](https://moanany-share.s3.amazonaws.com/serverless_pipeline_arch_2.png?AWSAccessKeyId=AKIAJZICANBOQ5ADZ7YQ&Expires=1532717705&Signature=z1MT0CWAPhDjc9YI5wx25WqlVLQ%3D)Let's go through the steps necessary to get this prototype up and running. If you are starting from scratch and are not familiar with Python, completing all steps can take a few hours.
+![Architecture](https://moanany-share.s3.amazonaws.com/serverless_pipeline_arch_2.png?AWSAccessKeyId=AKIAJZICANBOQ5ADZ7YQ&Expires=1532717705&Signature=z1MT0CWAPhDjc9YI5wx25WqlVLQ%3D)
+
+Let's go through the steps necessary to get this prototype up and running. If you are starting from scratch and are not familiar with Python, completing all steps can take a few hours.
+
 ## Preparing your development environment
 Here’s a high-level checklist of what you need to do to setup your development environment.
 
@@ -349,7 +354,7 @@ $ pynt webui #Build the Web UI
 * On your machine, in a separate command line terminal:
 
 ```bash
-$ pynt webuiserver[8080] #Start the Web UI server on port 8080
+$ pynt webuiserver #Start the Web UI server on port 8080 by default
 ```
 
 * In your browser, access http://localhost:8080 to access the prototype's Web UI. You should see a screen similar to this:
@@ -358,12 +363,18 @@ $ pynt webuiserver[8080] #Start the Web UI server on port 8080
 
 * Now turn on your IP camera or launch the app on your smartphone. Ensure that your camera is accepting connections for streaming MJPEG video over HTTP, and identify the local URL for accessing that stream.
 
-* Then, in a terminal window at the root directory of the project, issue this command:```bash$ pynt videocaptureip["<your-ip-cam-mjpeg-url>",<capture-rate>]
-```* Or, if you don’t have an IP camera and would like to use a built-in camera:
-```bash
+* Then, in a terminal window at the root directory of the project, issue this command:
+
+```bash
+$ pynt videocaptureip["<your-ip-cam-mjpeg-url>",<capture-rate>]
+```
+* Or, if you don’t have an IP camera and would like to use a built-in camera:
+
+```bash
 $ pynt videocapture[<frame-capture-rate>]
 ```
-* Few seconds after you execute this step, the dashed area in the Web UI will auto-populate with captured frames, side by side with labels recognized in them.
+
+* Few seconds after you execute this step, the dashed area in the Web UI will auto-populate with captured frames, side by side with labels recognized in them.
 
 ## When you are done
 After you are done experimenting with the prototype, perform the following steps to avoid unwanted costs.
@@ -384,19 +395,41 @@ A copy of the License is located at
 [http://aws.amazon.com/asl/](http://aws.amazon.com/asl/)
 
 # The AWS CloudFormation Stack (optional read)
-Let’s quickly go through the stack that AWS CloudFormation sets up in your account based on the template. AWS CloudFormation uses as much parallelism as possible while creating resources. As a result, some resources may be created in an order different than what I’m going to describe here.First, AWS CloudFormation creates the IAM roles necessary to allow AWS services to interact with one another. This includes the following.* _ImageProcessorLambdaExecutionRole_ – a role to be assumed by the Image Processor lambda function. It allows full access to Amazon DynamoDB, Amazon S3, Amazon SNS, and AWS CloudWatch Logs. The role also allows read-only access to Amazon Kinesis and Amazon Rekognition. For simplicity, only managed AWS role permission policies are used.
-* _FrameFetcherLambdaExecutionRole_ – a role to be assumed by the Frame Fetcher lambda function. It allows full access to Amazon S3, Amazon DynamoDB, and AWS CloudWatch Logs. For simplicity, only managed AWS permission policies are used.In parallel, AWS CloudFormation creates the Amazon S3 bucket to be used to store the captured video frame images. It also creates the Kinesis Frame Stream to receive captured video frame images from the Video Cap client.
-Next, the Image Processor lambda function is created in addition to an AWS Lambda Event Source Mapping to allow Amazon Kinesis to trigger Image Processor once new captured video frames are available. 
+
+Let’s quickly go through the stack that AWS CloudFormation sets up in your account based on the template. AWS CloudFormation uses as much parallelism as possible while creating resources. As a result, some resources may be created in an order different than what I’m going to describe here.
+
+First, AWS CloudFormation creates the IAM roles necessary to allow AWS services to interact with one another. This includes the following.
+
+* _ImageProcessorLambdaExecutionRole_ – a role to be assumed by the Image Processor lambda function. It allows full access to Amazon DynamoDB, Amazon S3, Amazon SNS, and AWS CloudWatch Logs. The role also allows read-only access to Amazon Kinesis and Amazon Rekognition. For simplicity, only managed AWS role permission policies are used.
+
+* _FrameFetcherLambdaExecutionRole_ – a role to be assumed by the Frame Fetcher lambda function. It allows full access to Amazon S3, Amazon DynamoDB, and AWS CloudWatch Logs. For simplicity, only managed AWS permission policies are used.
+In parallel, AWS CloudFormation creates the Amazon S3 bucket to be used to store the captured video frame images. It also creates the Kinesis Frame Stream to receive captured video frame images from the Video Cap client.
+
+Next, the Image Processor lambda function is created in addition to an AWS Lambda Event Source Mapping to allow Amazon Kinesis to trigger Image Processor once new captured video frames are available. 
 
 The Frame Fetcher lambda function is also created. Frame Fetcher is a simple lambda function that responds to a GET request by returning the latest list of frames, in descending order by processing timestamp, up to a configurable number of hours, called the “fetch horizon” (check the framefetcher-params.json file for more run-time configuration parameters). Necessary AWS Lambda Permissions are also created to permit Amazon API Gateway to invoke the Frame Fetcher lambda function.
-AWS CloudFormation also creates the DynamoDB table where Enriched Frame metadata is stored by the Image Processor lambda function as described in the architecture overview section of this post. A Global Secondary Index (GSI) is also created; to be used by the Frame Fetcher lambda function in fetching Enriched Frame metadata in descending order by time of capture.
-Finally, AWS CloudFormation creates the Amazon API Gateway resources necessary to allow the Web UI to securely invoke the Frame Fetcher lambda function with a GET request to a public API Gateway URL.The following API Gateway resources are created.
+
+AWS CloudFormation also creates the DynamoDB table where Enriched Frame metadata is stored by the Image Processor lambda function as described in the architecture overview section of this post. A Global Secondary Index (GSI) is also created; to be used by the Frame Fetcher lambda function in fetching Enriched Frame metadata in descending order by time of capture.
+
+Finally, AWS CloudFormation creates the Amazon API Gateway resources necessary to allow the Web UI to securely invoke the Frame Fetcher lambda function with a GET request to a public API Gateway URL.
+
+The following API Gateway resources are created.
 
 * REST API named “RtRekogRestAPI” by default.
 
 * An API Gateway resource with a path part set to “enrichedframe” by default.
 
-* A GET API Gateway method associated with the “enrichedframe” resource. This method is configured with Lambda proxy integration with the Frame Fetcher lambda function (learn more about AWS API Gateway proxy integration here). The method is also configured such that an API key is required.* An OPTIONS API Gateway method associated with the “enrichedframe” resource. This method’s purpose is to enable Cross-Origin Resource Sharing (CORS). Enabling CORS allows the Web UI to make Ajax requests to the Frame Fetcher API Gateway URL. Note that the Frame Fetcher lambda function must, itself, also return the Access-Control-Allow-Origin CORS header in its HTTP response.* A “development” API Gateway deployment to allow the invocation of the prototype's API over the Internet.* A “development” API Gateway stage for the API deployment along with an API Gateway usage plan named “development-plan” by default.* An API Gateway API key, name “DevApiKey” by default. The key is associated with the “development” stage and “development-plan” usage plan.All defaults can be overridden in the cfn-params.json configuration file. That’s it for the prototype's AWS CloudFormation stack! **This stack was designed primarily for development/demo purposes, especially how the Amazon API Gateway resources are set up.**
+* A GET API Gateway method associated with the “enrichedframe” resource. This method is configured with Lambda proxy integration with the Frame Fetcher lambda function (learn more about AWS API Gateway proxy integration here). The method is also configured such that an API key is required.
+
+* An OPTIONS API Gateway method associated with the “enrichedframe” resource. This method’s purpose is to enable Cross-Origin Resource Sharing (CORS). Enabling CORS allows the Web UI to make Ajax requests to the Frame Fetcher API Gateway URL. Note that the Frame Fetcher lambda function must, itself, also return the Access-Control-Allow-Origin CORS header in its HTTP response.
+
+* A “development” API Gateway deployment to allow the invocation of the prototype's API over the Internet.
+
+* A “development” API Gateway stage for the API deployment along with an API Gateway usage plan named “development-plan” by default.
+
+* An API Gateway API key, name “DevApiKey” by default. The key is associated with the “development” stage and “development-plan” usage plan.
+
+All defaults can be overridden in the cfn-params.json configuration file. That’s it for the prototype's AWS CloudFormation stack! **This stack was designed primarily for development/demo purposes, especially how the Amazon API Gateway resources are set up.**
 
 # FAQ
 
