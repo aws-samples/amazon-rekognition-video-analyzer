@@ -268,10 +268,24 @@ Congratulations! You’ve just created the prototype's entire architecture in yo
 The `deletestack` command, once issued, does a few things. 
 First, it empties the Amazon S3 bucket used to store video frame images. Next, it calls the AWS CloudFormation delete_stack() API to delete the prototype's stack from your account. Finally, it removes any unneeded resources not deleted by the stack (for example, the prototype's API Gateway Usage Plan resource).
 
-You can issue the deletestack command as follows.
+You can issue the `deletestack` command as follows.
 
 ```bash
 pynt deletestack
+```
+
+As with `createstack`, you can monitor the progress of stack deletion using the `stackstatus` build command.
+
+### The `deletedata` build command
+
+The `deletestack` command, once issued, empties the Amazon S3 bucket used to store video frame images. Next, it also deletes all items in the DynamoDB table used to store frame metadata.
+
+Use this command to clear all previously ingested video frames and associated metadata. The command will ask for confirmation [Y/N] before proceeding with deletion.
+
+You can issue the `deletedata` command as follows.
+
+```bash
+pynt deletedata
 ```
 
 As with `createstack`, you can monitor the progress of stack deletion using the `stackstatus` build command.

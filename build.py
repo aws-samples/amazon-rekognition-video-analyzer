@@ -396,3 +396,50 @@ def videocapture(capturerate="30",clientdir="client"):
     os.chdir("..")
 
     return
+
+@task()
+def deletedata(global_params_path="config/global-params.json", cfn_params_path="config/cfn-params.json", image_processor_params_path="config/imageprocessor-params.json"):
+    '''DELETE ALL collected frames and metadata in Amazon S3 and Amazon DynamoDB. Use with caution!'''
+    
+    cfn_params_dict = read_json(cfn_params_path)
+    img_processor_params_dict = read_json(image_processor_params_path)
+
+    frame_s3_bucket_name = cfn_params_dict["FrameS3BucketNameParameter"]
+    frame_ddb_table_name = img_processor_params_dict["ddb_table"]
+
+    proceed = raw_input("This command will DELETE ALL DATA in S3 bucket '%s' and DynamoDB table '%s'.\nDo you wish to continue? [Y/N] " \
+        % (frame_s3_bucket_name, frame_ddb_table_name))
+
+    if(proceed.lower() != 'y'):
+        print("Aborting deletion.")
+        return
+
+
+    print("Attempting to DELETE ALL OBJECTS in '%s' S3 bucket." % frame_s3_bucket_name)
+    
+    s3 = boto3.resource('s3')
+    s3.Bucket(frame_s3_bucket_name).objects.delete()
+
+    print("Attempting to DELETE ALL ITEMS in '%s' DynamoDB table." % frame_ddb_table_name)
+    dynamodb = boto3.client('dynamodb')
+    ddb_table = boto3.resource('dynamodb').Table(frame_ddb_table_name)
+
+    response = dynamodb.scan(
+        TableName=frame_ddb_table_name,
+        Select= 'SPECIFIC_ATTRIBUTES',
+        AttributesToGet=[
+            'frame_id',
+        ]
+    )
+
+    with ddb_table.batch_writer() as batch:
+        for item in response["Items"]:
+            print("Deleting Item with 'frame_id': %s" % item['frame_id']['S'])
+            batch.delete_item(
+                Key={
+                    'frame_id': item['frame_id']['S']
+                }
+            )
+
+    return
+
