@@ -21,7 +21,7 @@ Here’s a high-level checklist of what you need to do to setup your development
 
 2. Ensure that you have Python 2.7+ and Pip on your machine. Instructions for that varies based on your operating system and OS version.
 
-3. Create a Python [virtual environment](http://python-guide-pt-br.readthedocs.io/en/latest/dev/virtualenvs/) for the project with Virtualenv. This helps keep project’s python dependencies neatly isolated from your Operating System’s default python installation. **Once you’ve created a virtual python environment, activate it before moving on with the following steps**.
+3. Create a Python [virtual environment](https://virtualenv.pypa.io/en/stable/) for the project with Virtualenv. This helps keep project’s python dependencies neatly isolated from your Operating System’s default python installation. **Once you’ve created a virtual python environment, activate it before moving on with the following steps**.
 
 4. Use Pip to [install AWS CLI](http://docs.aws.amazon.com/cli/latest/userguide/installing.html). [Configure](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) the AWS CLI. It is recommended that the access keys you configure are associated with an IAM User who has full access to the following:
  - Amazon S3
@@ -136,7 +136,7 @@ Specifies configuration parameters to be used at run-time by the Image Processor
 }
 ```
 
-* `s3_bucket` - The Amazon S3 bucket in which Image Processor will store captured video frame images. The value specified here _must_ match the value specified for the `RtRekogS3BucketNameParameter` parameter in the `cfn-params.json` file.
+* `s3_bucket` - The Amazon S3 bucket in which Image Processor will store captured video frame images. The value specified here _must_ match the value specified for the `FrameS3BucketNameParameter` parameter in the `cfn-params.json` file.
 
 * `s3_key_frames_root` - The Amazon S3 key prefix that will be prepended to the keys of all stored video frame images.
 
