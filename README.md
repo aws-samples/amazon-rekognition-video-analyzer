@@ -278,7 +278,7 @@ As with `createstack`, you can monitor the progress of stack deletion using the 
 
 ### The `deletedata` build command
 
-The `deletestack` command, once issued, empties the Amazon S3 bucket used to store video frame images. Next, it also deletes all items in the DynamoDB table used to store frame metadata.
+The `deletedata` command, once issued, empties the Amazon S3 bucket used to store video frame images. Next, it also deletes all items in the DynamoDB table used to store frame metadata.
 
 Use this command to clear all previously ingested video frames and associated metadata. The command will ask for confirmation [Y/N] before proceeding with deletion.
 
