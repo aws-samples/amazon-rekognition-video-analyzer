@@ -288,8 +288,6 @@ You can issue the `deletedata` command as follows.
 pynt deletedata
 ```
 
-As with `createstack`, you can monitor the progress of stack deletion using the `stackstatus` build command.
-
 ### The `stackstatus` build command
 
 The `stackstatus` command will query AWS CloudFormation for the status of the prototype's stack. This command is most useful for quickly checking that the prototype is up and running (i.e. status is "CREATE\_COMPLETE" or "UPDATE\_COMPLETE") and ready to serve requests from the Web UI.
