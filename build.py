@@ -367,7 +367,7 @@ def webuiserver(webdir="web-ui/",port=8080):
     
     Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
 
-    httpd = SocketServer.TCPServer(("", port), Handler)
+    httpd = SocketServer.TCPServer(("0.0.0.0", port), Handler)
 
     print "Starting local Web UI Server in directory '%s' on port %s" % (web_build_dir, port)
     
