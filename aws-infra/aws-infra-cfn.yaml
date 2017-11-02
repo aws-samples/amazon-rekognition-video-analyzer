@@ -101,7 +101,9 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonSNSFullAccess
         - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
       Path: "/"
-      RoleName: "ImageProcessorLambdaExecutionRole"
+    DependsOn:
+      - FrameS3Bucket
+      - EnrichedFrameTable
   
   FrameFetcherLambdaExecutionRole:
     Type: "AWS::IAM::Role"
@@ -120,7 +122,9 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
         - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
       Path: "/"
-      RoleName: "FrameFetcherLambdaExecutionRole"
+    DependsOn:
+    - FrameS3Bucket
+    - EnrichedFrameTable
 
   FrameStream:
     Type: "AWS::Kinesis::Stream"
