@@ -89,7 +89,8 @@ def process_image(event, context):
         )
 
 
-        #Iterate on rekognition labels...
+        #Iterate on rekognition labels. Enrich and prep them for storage in DynamoDB
+        labels_on_watch_list = []
         for label in rekog_response['Labels']:
             
             lbl = label['Name']
@@ -106,21 +107,28 @@ def process_image(event, context):
                 and conf >= label_watch_min_conf):
                 
                 label['OnWatchList'] = True
+                labels_on_watch_list.append(label)
 
-                notification_txt = 'On {}, {} was detected with %{} confidence.'.format(
-                    now.strftime('%x %X %Z'), 
-                    lbl, 
-                    round(conf,2))
-
-                print(notification_txt)
-
-                #Send SNS notification
-                sns_client.publish(PhoneNumber=label_watch_phone_num, Message=notification_txt)
-            
             #Convert from float to decimal for DynamoDB
             label['Confidence'] = decimal.Decimal(conf)
 
-        #print("rekog_response:\n{}", rekog_response)
+        #Send out notification(s), if needed
+        if(len(labels_on_watch_list) > 0):
+
+            notification_txt = 'On {}...\n'.format(now.strftime('%x %X %Z'))
+
+            for label in labels_on_watch_list:
+
+                notification_txt += '- "{}" was detected with %{} confidence.\n'.format(
+                    label['Name'],
+                    round(label['Confidence'], 2))
+
+            print(notification_txt)
+
+            #Send SNS notification
+            sns_client.publish(PhoneNumber=label_watch_phone_num, Message=notification_txt)
+
+        #Store frame image in S3
         s3_key = (s3_key_frames_root + '{}/{}/{}/{}/{}.jpg').format(year, mon, day, hour, frame_id)
         
         s3_client.put_object(
