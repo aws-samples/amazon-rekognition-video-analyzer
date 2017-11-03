@@ -14,6 +14,7 @@ import cPickle
 import boto3
 import pytz
 from pytz import timezone
+from copy import deepcopy
 
 
 def load_config():
@@ -56,7 +57,8 @@ def process_image(event, context):
 
     label_watch_list = config["label_watch_list"]
     label_watch_min_conf = float(config["label_watch_min_conf"])
-    label_watch_phone_num = config["label_watch_phone_num"]
+    label_watch_phone_num = config.get("label_watch_phone_num", "")
+    label_watch_sns_topic_arn = config.get("label_watch_sns_topic_arn", "")
 
     #Iterate on frames fetched from Kinesis
     for record in event['Records']:
@@ -101,19 +103,18 @@ def process_image(event, context):
             print('{} .. conf %{:.2f}'.format(lbl, conf))
 
             #Check label watch list and trigger action
-            if(label_watch_phone_num 
-                and lbl.upper() in 
-                    (label.upper() for label in label_watch_list) 
+            if (lbl.upper() in (label.upper() for label in label_watch_list)
                 and conf >= label_watch_min_conf):
-                
+
                 label['OnWatchList'] = True
-                labels_on_watch_list.append(label)
+                labels_on_watch_list.append(deepcopy(label))
 
             #Convert from float to decimal for DynamoDB
             label['Confidence'] = decimal.Decimal(conf)
 
         #Send out notification(s), if needed
-        if(len(labels_on_watch_list) > 0):
+        if len(labels_on_watch_list) > 0 \
+                and (label_watch_phone_num or label_watch_sns_topic_arn):
 
             notification_txt = 'On {}...\n'.format(now.strftime('%x %X %Z'))
 
@@ -125,8 +126,22 @@ def process_image(event, context):
 
             print(notification_txt)
 
-            #Send SNS notification
-            sns_client.publish(PhoneNumber=label_watch_phone_num, Message=notification_txt)
+            if label_watch_phone_num:
+                sns_client.publish(PhoneNumber=label_watch_phone_num, Message=notification_txt)
+
+            if label_watch_sns_topic_arn:
+                resp = sns_client.publish(
+                    TopicArn=label_watch_sns_topic_arn,
+                    Message=json.dumps(
+                        {
+                            "message": notification_txt,
+                            "labels": labels_on_watch_list
+                        }
+                    )
+                )
+
+                if resp.get("MessageId", ""):
+                    print("Successfully published alert message to SNS.")
 
         #Store frame image in S3
         s3_key = (s3_key_frames_root + '{}/{}/{}/{}/{}.jpg').format(year, mon, day, hour, frame_id)

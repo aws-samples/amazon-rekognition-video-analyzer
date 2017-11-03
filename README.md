@@ -132,6 +132,7 @@ Specifies configuration parameters to be used at run-time by the Image Processor
 	"label_watch_list" : ["Human", "Pet", "Bag", "Toy"],
 	"label_watch_min_conf" : 90.0,
 	"label_watch_phone_num" : "",
+	"label_watch_sns_topic_arn" : "",
 	"timezone" : "US/Eastern"
 }
 ```
@@ -151,6 +152,8 @@ Specifies configuration parameters to be used at run-time by the Image Processor
 * `label_watch_min_conf` - The minimum confidence required for a label to trigger a Watch List alert.
 
 * `label_watch_phone_num` - The mobile phone number to which a Watch List SMS alert will be sent. Does not have a default value. **You must configure a valid phone number adhering to the E.164 format (e.g. +1404XXXYYYY) for the Watch List feature to become active.**
+
+* `label_watch_sns_topic_arn` - The SNS topic ARN to which you want Watch List alert messages to be sent. The alert message contains a notification text in addition to a JSON formatted list of Watch List labels found. This can be used to publish alerts to any SNS subscribers, such as Amazon SQS queues.
 
 * `timezone` - The timezone used to report time and date in SMS alerts. By default, it is "US/Eastern". See this list of [country codes, names, continents, capitals, and pytz timezones](https://gist.github.com/pamelafox/986163)).
 

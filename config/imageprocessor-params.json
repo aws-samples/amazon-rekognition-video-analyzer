@@ -10,6 +10,7 @@
 	"label_watch_list" : ["Human", "Pet", "Bag", "Toy"],
 	"label_watch_min_conf" : 90.0,
 	"label_watch_phone_num" : "",
+    "label_watch_sns_topic_arn" : "",
 
 	"timezone" : "US/Eastern"
 }
