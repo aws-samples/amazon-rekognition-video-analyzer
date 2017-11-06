@@ -116,11 +116,11 @@ def process_image(event, context):
         if len(labels_on_watch_list) > 0 \
                 and (label_watch_phone_num or label_watch_sns_topic_arn):
 
-            notification_txt = 'On {}...\n'.format(now.strftime('%x %X %Z'))
+            notification_txt = 'On {}...\n'.format(now.strftime('%x, %-I:%M %p %Z'))
 
             for label in labels_on_watch_list:
 
-                notification_txt += '- "{}" was detected with %{} confidence.\n'.format(
+                notification_txt += '- "{}" was detected with {}% confidence.\n'.format(
                     label['Name'],
                     round(label['Confidence'], 2))
 
