@@ -424,22 +424,42 @@ def deletedata(global_params_path="config/global-params.json", cfn_params_path="
     dynamodb = boto3.client('dynamodb')
     ddb_table = boto3.resource('dynamodb').Table(frame_ddb_table_name)
 
-    response = dynamodb.scan(
-        TableName=frame_ddb_table_name,
-        Select= 'SPECIFIC_ATTRIBUTES',
-        AttributesToGet=[
-            'frame_id',
-        ]
-    )
+    last_eval_key = None
+    keep_scanning = True
+    batch_count = 0
+    while keep_scanning:
+        batch_count += 1
 
-    with ddb_table.batch_writer() as batch:
-        for item in response["Items"]:
-            print("Deleting Item with 'frame_id': %s" % item['frame_id']['S'])
-            batch.delete_item(
-                Key={
-                    'frame_id': item['frame_id']['S']
-                }
+        if(keep_scanning and last_eval_key):
+            response = dynamodb.scan(
+                TableName=frame_ddb_table_name,
+                Select='SPECIFIC_ATTRIBUTES',
+                AttributesToGet=[
+                    'frame_id',
+                ],
+                ExclusiveStartKey=last_eval_key
             )
+        else:
+            response = dynamodb.scan(
+                TableName=frame_ddb_table_name,
+                Select='SPECIFIC_ATTRIBUTES',
+                AttributesToGet=[
+                    'frame_id',
+                ]
+            )
+
+        last_eval_key = response.get('LastEvaluatedKey', None)
+        keep_scanning = True if last_eval_key else False
+
+        with ddb_table.batch_writer() as batch:
+            for item in response["Items"]:
+                print("Deleting Item with 'frame_id': %s" % item['frame_id']['S'])
+                batch.delete_item(
+                    Key={
+                        'frame_id': item['frame_id']['S']
+                    }
+                )
+    print("Deleted %s batches of items from DynamoDB." % batch_count)
 
     return
 
