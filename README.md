@@ -105,7 +105,7 @@ Parameters:
 
 * `FrameFetcherSourceS3KeyParameter` - The Amazon S3 key under which the Frame Fetcher function .zip file will be stored.
 
-* `FrameS3BucketNameParameter` - The Amazon S3 bucket that will be used for storing video frame images.
+* `FrameS3BucketNameParameter` - The Amazon S3 bucket that will be used for storing video frame images. **There must not be an existing S3 bucket with the same name.**
 
 * `FrameFetcherApiResourcePathPart` - The name of the Frame Fetcher API resource path part in the API Gateway URL.
 
