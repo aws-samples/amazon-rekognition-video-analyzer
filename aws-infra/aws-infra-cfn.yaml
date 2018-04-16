@@ -307,6 +307,9 @@ Resources:
       Name: "DevApiKey"
       Description: "Video Analyzer Dev API Key"
       Enabled: true
+      StageKeys:
+        - RestApiId: !Ref VidAnalyzerRestApi
+          StageName: !Ref ApiGatewayStageNameParameter
     DependsOn: 
       - VidAnalyzerApiDeployment
 
