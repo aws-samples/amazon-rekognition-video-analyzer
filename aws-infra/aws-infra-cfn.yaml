@@ -312,6 +312,7 @@ Resources:
           StageName: !Ref ApiGatewayStageNameParameter
     DependsOn: 
       - VidAnalyzerApiDeployment
+      - DevStage
 
   DevUsagePlanKey:
     Type: "AWS::ApiGateway::UsagePlanKey"
