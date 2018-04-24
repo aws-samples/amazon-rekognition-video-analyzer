@@ -99,7 +99,7 @@ Specifies and overrides default values of AWS CloudFormation parameters defined 
 ```
 Parameters:
 
-* `SourceS3BucketParameter` - The Amazon S3 bucket to which your AWS Lambda function packages (.zip files) will be dpeloyed. If a bucket with such a name does not exist, the `deploylambda` build command will create it for you with appropriate permissions. AWS CloudFormation will access this bucket to retrieve the .zip files for Image Processor and Frame Fetcher AWS Lambda functions.
+* `SourceS3BucketParameter` - The Amazon S3 bucket to which your AWS Lambda function packages (.zip files) will be deployed. If a bucket with such a name does not exist, the `deploylambda` build command will create it for you with appropriate permissions. AWS CloudFormation will access this bucket to retrieve the .zip files for Image Processor and Frame Fetcher AWS Lambda functions.
 
 * `ImageProcessorSourceS3KeyParameter` - The Amazon S3 key under which the Image Processor function .zip file will be stored.
 
