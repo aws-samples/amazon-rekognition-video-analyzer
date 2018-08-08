@@ -10,7 +10,7 @@ The prototype was conceived to address a specific use case, which is alerting ba
 
 Here's the prototype's conceptual architecture:
 
-![Architecture](https://moanany-share.s3.amazonaws.com/serverless_pipeline_arch_2.png?AWSAccessKeyId=AKIAJZICANBOQ5ADZ7YQ&Expires=1532717705&Signature=z1MT0CWAPhDjc9YI5wx25WqlVLQ%3D)
+![Architecture](doc/serverless_pipeline_arch_2.png)
 
 Let's go through the steps necessary to get this prototype up and running. If you are starting from scratch and are not familiar with Python, completing all steps can take a few hours.
 
@@ -200,7 +200,7 @@ pynt -l
 
 The output represents the list of build commands available to you:
 
-![pynt -l output](https://moanany-share.s3.amazonaws.com/pynt%20dash%20l.png?AWSAccessKeyId=AKIAJZICANBOQ5ADZ7YQ&Expires=1530338841&Signature=m6xRFWAs9v9DNmmWHIL4hD12ySk%3D)
+![pynt -l output](doc/pynt%20dash%20l.png)
 
 Build commands are implemented as python scripts in the file ```build.py```. The scripts use the AWS Python SDK (Boto) under the hood. They are documented in the following section.
 
@@ -374,7 +374,7 @@ $ pynt webuiserver #Start the Web UI server on port 8080 by default
 
 * In your browser, access http://localhost:8080 to access the prototype's Web UI. You should see a screen similar to this:
 
-![Empty Web UI](https://moanany-share.s3.amazonaws.com/webui-empty.png?AWSAccessKeyId=AKIAJZICANBOQ5ADZ7YQ&Expires=1530440190&Signature=QtapZYVNvHOPx7aFLxrXCMLUMKc%3D)
+![Empty Web UI](doc/webui-empty.png)
 
 * Now turn on your IP camera or launch the app on your smartphone. Ensure that your camera is accepting connections for streaming MJPEG video over HTTP, and identify the local URL for accessing that stream.
 
