@@ -5,11 +5,11 @@
 
 AWSTemplateFormatVersion: 2010-09-09
 
-Description: The CloudFormation template for AWS resources required by amazon rekognition video analyzer. 
+Description: The CloudFormation template for AWS resources required by amazon rekognition video analyzer.
 
 Parameters:
 
-  SourceS3BucketParameter: 
+  SourceS3BucketParameter:
     Type: String
     MinLength: "1"
     Description: "Enter the name of the S3 bucket containing source .zip files."
@@ -43,13 +43,13 @@ Parameters:
     Type: String
     Default: "FrameStream"
     Description: "Name of the Kinesis stream to receive frames from video capture client."
-  
+
   FrameS3BucketNameParameter:
     Type: String
     MinLength: "1"
     Description: "Name of the S3 bucket for storage of captured frames."
 
-  DDBTableNameParameter: 
+  DDBTableNameParameter:
     Type: String
     Default: "EnrichedFrame"
     Description: "Name of the DynamoDB table for persistence & querying of captured frames metadata."
@@ -78,12 +78,12 @@ Resources:
 
   FrameS3Bucket:
     Type: "AWS::S3::Bucket"
-    Properties: 
+    Properties:
       BucketName: !Ref FrameS3BucketNameParameter
 
   ImageProcessorLambdaExecutionRole:
     Type: "AWS::IAM::Role"
-    Properties: 
+    Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -104,10 +104,10 @@ Resources:
     DependsOn:
       - FrameS3Bucket
       - EnrichedFrameTable
-  
+
   FrameFetcherLambdaExecutionRole:
     Type: "AWS::IAM::Role"
-    Properties: 
+    Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -128,7 +128,7 @@ Resources:
 
   FrameStream:
     Type: "AWS::Kinesis::Stream"
-    Properties: 
+    Properties:
       Name: !Ref KinesisStreamNameParameter
       ShardCount: 1
 
@@ -144,14 +144,14 @@ Resources:
         S3Key: !Ref ImageProcessorSourceS3KeyParameter
       Timeout: 40 #seconds
       MemorySize: 128 #MB
-      Runtime: python2.7
-    DependsOn: 
+      Runtime: python3.6
+    DependsOn:
       - FrameStream
       - ImageProcessorLambdaExecutionRole
 
   EventSourceMapping:
     Type: "AWS::Lambda::EventSourceMapping"
-    Properties: 
+    Properties:
       EventSourceArn: !GetAtt FrameStream.Arn
       FunctionName: !GetAtt ImageProcessorLambda.Arn
       StartingPosition: "TRIM_HORIZON"
@@ -171,7 +171,7 @@ Resources:
         S3Key: !Ref FrameFetcherSourceS3KeyParameter
       Timeout: 10 #seconds
       MemorySize: 128 #MB
-      Runtime: python2.7
+      Runtime: python3.6
     DependsOn:
       - FrameFetcherLambdaExecutionRole
 
@@ -204,18 +204,18 @@ Resources:
             AttributeName: "processed_year_month"
           - KeyType: "RANGE"
             AttributeName: "processed_timestamp"
-  
+
   # API Gateway Resources
-  VidAnalyzerRestApi: 
+  VidAnalyzerRestApi:
     Type: "AWS::ApiGateway::RestApi"
     Properties:
       Description: "The amazon rekognition video analyzer public API."
       Name: !Ref ApiGatewayRestApiNameParameter
     DependsOn: FrameFetcherLambda
 
-  EnrichedFrameResource: 
+  EnrichedFrameResource:
     Type: "AWS::ApiGateway::Resource"
-    Properties: 
+    Properties:
       RestApiId: !Ref VidAnalyzerRestApi
       ParentId: !GetAtt VidAnalyzerRestApi.RootResourceId
       PathPart: !Ref FrameFetcherApiResourcePathPart
@@ -226,7 +226,7 @@ Resources:
       RestApiId: !Ref VidAnalyzerRestApi
       ResourceId: !Ref EnrichedFrameResource
       ApiKeyRequired: true
-      HttpMethod: GET      
+      HttpMethod: GET
       AuthorizationType: NONE
       Integration:
         Type: AWS_PROXY
@@ -241,7 +241,7 @@ Resources:
             "method.response.header.Access-Control-Allow-Methods": true
             "method.response.header.Access-Control-Allow-Headers": true
 
-  # Mock integration to allow Cross-Origin Resource Sharing (CORS) 
+  # Mock integration to allow Cross-Origin Resource Sharing (CORS)
   # for Web UI to invoke API Gateway
   EnrichedFrameResourceOPTIONS:
     Type: AWS::ApiGateway::Method
@@ -257,7 +257,7 @@ Resources:
         PassthroughBehavior: WHEN_NO_MATCH
         RequestTemplates:
           "application/json": '{"statusCode": 200 }'
-        IntegrationResponses: 
+        IntegrationResponses:
           - StatusCode: 200
             ResponseParameters:
               "method.response.header.Access-Control-Allow-Origin": "'*'"
@@ -282,7 +282,7 @@ Resources:
     DependsOn:
       - EnrichedFrameResourceGET
       - EnrichedFrameResourceOPTIONS
-  
+
   DevStage:
     Type: "AWS::ApiGateway::Stage"
     Properties:
@@ -301,30 +301,30 @@ Resources:
       UsagePlanName: !Ref ApiGatewayUsagePlanNameParameter
     DeletionPolicy: Retain #Had to be added to avoid stack deletion failing due to association with DevStage.
 
-  VidAnalyzerApiKey: 
+  VidAnalyzerApiKey:
     Type: "AWS::ApiGateway::ApiKey"
-    Properties: 
+    Properties:
       Name: "DevApiKey"
       Description: "Video Analyzer Dev API Key"
       Enabled: true
       StageKeys:
         - RestApiId: !Ref VidAnalyzerRestApi
           StageName: !Ref ApiGatewayStageNameParameter
-    DependsOn: 
+    DependsOn:
       - VidAnalyzerApiDeployment
       - DevStage
 
   DevUsagePlanKey:
     Type: "AWS::ApiGateway::UsagePlanKey"
-    Properties : 
+    Properties :
       KeyId: !Ref VidAnalyzerApiKey
       KeyType: API_KEY
       UsagePlanId: !Ref DevUsagePlan
 
   #Give API Gateway permission to invoke FrameFetcher lambda function.
-  LambdaInvokePermissionSTAR: 
+  LambdaInvokePermissionSTAR:
     Type: "AWS::Lambda::Permission"
-    Properties: 
+    Properties:
       FunctionName: !GetAtt FrameFetcherLambda.Arn
       Action: "lambda:InvokeFunction"
       Principal: "apigateway.amazonaws.com"
@@ -332,9 +332,9 @@ Resources:
     DependsOn:
       - VidAnalyzerApiDeployment
 
-  LambdaInvokePermissionGET: 
+  LambdaInvokePermissionGET:
     Type: "AWS::Lambda::Permission"
-    Properties: 
+    Properties:
       FunctionName: !GetAtt FrameFetcherLambda.Arn
       Action: "lambda:InvokeFunction"
       Principal: "apigateway.amazonaws.com"
@@ -348,10 +348,8 @@ Outputs:
   VidAnalyzerApiEndpoint:
     Description: "Endpoint for invoking video analyzer API."
     Value: !Ref VidAnalyzerApiDeployment
-  
+
   #API Key Id
   VidAnalyzerApiKey:
     Description: "Key for invoking video analyzer API."
     Value: !Ref VidAnalyzerApiKey
-
-

@@ -4,12 +4,11 @@
 # or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions and limitations under the License.
 
 import sys
-import cPickle
 import datetime
 import cv2
 import boto3
 import time
-import cPickle
+import pickle
 from multiprocessing import Pool
 import pytz
 
@@ -50,7 +49,7 @@ def encode_and_send_frame(frame, frame_count, enable_kinesis=True, enable_rekog=
             print "Sending image to Kinesis"
             response = kinesis_client.put_record(
                 StreamName="FrameStream",
-                Data=cPickle.dumps(frame_package),
+                Data=pickle.dumps(frame_package),
                 PartitionKey="partitionkey"
             )
             print response
@@ -105,4 +104,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
