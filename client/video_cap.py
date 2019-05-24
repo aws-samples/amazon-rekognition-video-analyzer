@@ -46,13 +46,13 @@ def encode_and_send_frame(frame, frame_count, enable_kinesis=True, enable_rekog=
 
         #put encoded image in kinesis stream
         if enable_kinesis:
-            print "Sending image to Kinesis"
+            print ("Sending image to Kinesis")
             response = kinesis_client.put_record(
                 StreamName="FrameStream",
                 Data=pickle.dumps(frame_package),
                 PartitionKey="partitionkey"
             )
-            print response
+            print (response)
 
         if enable_rekog:
             response = rekog_client.detect_labels(
@@ -62,10 +62,10 @@ def encode_and_send_frame(frame, frame_count, enable_kinesis=True, enable_rekog=
                 MaxLabels=rekog_max_labels,
                 MinConfidence=rekog_min_conf
             )
-            print response
+            print (response)
 
     except Exception as e:
-        print e
+        print (e)
 
 
 def main():
