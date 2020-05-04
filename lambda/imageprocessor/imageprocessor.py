@@ -7,15 +7,14 @@ from __future__ import print_function
 import base64
 import datetime
 import time
-import decimal
+from decimal import Decimal
 import uuid
 import json
-import cPickle
+import pickle
 import boto3
 import pytz
 from pytz import timezone
 from copy import deepcopy
-
 
 def load_config():
     '''Load configuration from file.'''
@@ -64,7 +63,7 @@ def process_image(event, context):
     for record in event['Records']:
 
         frame_package_b64 = record['kinesis']['data']
-        frame_package = cPickle.loads(base64.b64decode(frame_package_b64))
+        frame_package = pickle.loads(base64.b64decode(frame_package_b64))
 
         img_bytes = frame_package["ImageBytes"]
         approx_capture_ts = frame_package["ApproximateCaptureTime"]
@@ -73,8 +72,8 @@ def process_image(event, context):
         now_ts = time.time()
 
         frame_id = str(uuid.uuid4())
-        processed_timestamp = decimal.Decimal(now_ts)
-        approx_capture_timestamp = decimal.Decimal(approx_capture_ts)
+        processed_timestamp = Decimal(now_ts)
+        approx_capture_timestamp = Decimal(approx_capture_ts)
         
         now = convert_ts(now_ts, config)
         year = now.strftime("%Y")
@@ -82,14 +81,18 @@ def process_image(event, context):
         day = now.strftime("%d")
         hour = now.strftime("%H")
 
-        rekog_response = rekog_client.detect_labels(
-            Image={
-                'Bytes': img_bytes
-            },
-            MaxLabels=rekog_max_labels,
-            MinConfidence=rekog_min_conf
-        )
-
+        try:
+            rekog_response = rekog_client.detect_labels(
+                Image={
+                    'Bytes': img_bytes
+                },
+                MaxLabels=rekog_max_labels,
+                MinConfidence=rekog_min_conf
+            )
+        except Exception as e:
+            #Log error and ignore frame. You might want to add that frame to a dead-letter queue.
+            print(e)
+            return
 
         #Iterate on rekognition labels. Enrich and prep them for storage in DynamoDB
         labels_on_watch_list = []
@@ -110,7 +113,14 @@ def process_image(event, context):
                 labels_on_watch_list.append(deepcopy(label))
 
             #Convert from float to decimal for DynamoDB
-            label['Confidence'] = decimal.Decimal(conf)
+            label['Confidence'] = Decimal(conf)
+
+            for instance in label['Instances']:
+                instance['BoundingBox']['Width'] = Decimal(instance['BoundingBox']['Width'])
+                instance['BoundingBox']['Height'] = Decimal(instance['BoundingBox']['Height'])
+                instance['BoundingBox']['Left'] = Decimal(instance['BoundingBox']['Left'])
+                instance['BoundingBox']['Top'] = Decimal(instance['BoundingBox']['Top'])
+                instance['Confidence'] = Decimal(instance['Confidence'])
 
         #Send out notification(s), if needed
         if len(labels_on_watch_list) > 0 \

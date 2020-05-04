@@ -20,26 +20,13 @@ pyenv*
 build/*
 !build/.gitkeep
 build.pyc
+config/
 #web-ui/logs/*
 #web-ui/node_modules/
 #web-ui/bower_components/
 #web-ui/tmp
 lambda/imageprocessor/pytz*
-*.sublime*
+venv/
 
-# Package control specific files
-Package Control.last-run
-Package Control.ca-list
-Package Control.ca-bundle
-Package Control.system-ca-bundle
-Package Control.cache/
-Package Control.ca-certs/
-Package Control.merged-ca-bundle
-Package Control.user-ca-bundle
-oscrypto-ca-bundle.crt
-bh_unicode_properties.cache
-
-# Sublime-github package stores a github token in this file
-# https://packagecontrol.io/packages/sublime-github
-GitHub.sublime-settings
+#IDE files
 .idea/

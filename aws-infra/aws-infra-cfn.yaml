@@ -81,6 +81,78 @@ Resources:
     Properties: 
       BucketName: !Ref FrameS3BucketNameParameter
 
+  ImageProcessorPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyDocument: {
+        "Version": "2012-10-17",
+        "Statement": [{
+                        "Effect": "Allow",
+                        "Action": [
+                          "dynamodb:GetItem",
+                          "dynamodb:Query",
+                          "dynamodb:PutItem",
+                          "dynamodb:UpdateItem",
+                          "dynamodb:DeleteItem"
+                        ],
+                        "Resource": !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DDBTableNameParameter}"
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream",
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": "logs:CreateLogGroup",
+                        "Resource": "*"
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "sns:publish"
+                        ],
+                        "Resource": "*"
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "kinesis:GetRecords",
+                          "kinesis:GetShardIterator",
+                          "kinesis:ListStreams",
+                          "kinesis:DescribeStream"
+                        ],
+                        "Resource": !Sub "arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${KinesisStreamNameParameter}"
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "rekognition:DetectLabels"
+                        ],
+                        "Resource": "*"
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "s3:GetObject",
+                          "s3:PutObject",
+                          "s3:ListBucket",
+                          "s3:DeleteObject"
+                        ],
+                        "Resource": [
+                          !Sub "arn:aws:s3:::${FrameS3BucketNameParameter}",
+                          !Sub "arn:aws:s3:::${FrameS3BucketNameParameter}/*"
+                        ]
+                      }
+        ]
+      }
+      PolicyName: "ImageProcessorPolicy"
+      Roles:
+        - !Ref ImageProcessorLambdaExecutionRole
+
   ImageProcessorLambdaExecutionRole:
     Type: "AWS::IAM::Role"
     Properties: 
@@ -93,18 +165,62 @@ Resources:
             - lambda.amazonaws.com
           Action:
           - sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonKinesisReadOnlyAccess
-        - arn:aws:iam::aws:policy/AmazonRekognitionReadOnlyAccess
-        - arn:aws:iam::aws:policy/AmazonS3FullAccess
-        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
-        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
       Path: "/"
     DependsOn:
       - FrameS3Bucket
       - EnrichedFrameTable
-  
+
+  FrameFetcherPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyDocument: {
+        "Version": "2012-10-17",
+        "Statement": [{
+                        "Effect": "Allow",
+                        "Action": [
+                          "dynamodb:GetItem",
+                          "dynamodb:Query",
+                          "dynamodb:PutItem",
+                          "dynamodb:UpdateItem",
+                          "dynamodb:DeleteItem"
+                        ],
+                        "Resource": [
+                            !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DDBTableNameParameter}",
+                            !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DDBTableNameParameter}/index/${DDBGlobalSecondaryIndexNameParameter}"
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream",
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": "logs:CreateLogGroup",
+                        "Resource": "*"
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "s3:GetObject",
+                          "s3:PutObject",
+                          "s3:ListBucket",
+                          "s3:DeleteObject"
+                        ],
+                        "Resource": [
+                        !Sub "arn:aws:s3:::${FrameS3BucketNameParameter}",
+                        !Sub "arn:aws:s3:::${FrameS3BucketNameParameter}/*"
+                        ]
+                      }
+        ]
+      }
+      PolicyName: "FrameFetcherPolicy"
+      Roles:
+        - !Ref FrameFetcherLambdaExecutionRole
+
   FrameFetcherLambdaExecutionRole:
     Type: "AWS::IAM::Role"
     Properties: 
@@ -117,10 +233,6 @@ Resources:
             - lambda.amazonaws.com
           Action:
           - sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonS3FullAccess
-        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
       Path: "/"
     DependsOn:
     - FrameS3Bucket
@@ -144,7 +256,7 @@ Resources:
         S3Key: !Ref ImageProcessorSourceS3KeyParameter
       Timeout: 40 #seconds
       MemorySize: 128 #MB
-      Runtime: python2.7
+      Runtime: python3.7
     DependsOn: 
       - FrameStream
       - ImageProcessorLambdaExecutionRole
@@ -158,6 +270,7 @@ Resources:
     DependsOn:
       - FrameStream
       - ImageProcessorLambda
+      - ImageProcessorPolicy
 
   FrameFetcherLambda:
     Type: AWS::Lambda::Function
@@ -171,7 +284,7 @@ Resources:
         S3Key: !Ref FrameFetcherSourceS3KeyParameter
       Timeout: 10 #seconds
       MemorySize: 128 #MB
-      Runtime: python2.7
+      Runtime: python3.7
     DependsOn:
       - FrameFetcherLambdaExecutionRole
 

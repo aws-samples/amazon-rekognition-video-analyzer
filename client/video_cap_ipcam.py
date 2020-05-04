@@ -3,13 +3,13 @@
 #     http://aws.amazon.com/asl/
 # or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-import urllib
+import urllib.request
 import sys
 import datetime
 import base64
 import boto3
 import json
-import cPickle
+import pickle
 import cv2
 from multiprocessing import Pool
 import numpy as np
@@ -46,20 +46,20 @@ def send_jpg(frame_jpg, frame_count, enable_kinesis=True, enable_rekog=False, wr
         }
 
         if write_file:
-            print "Writing file img_{}.jpg".format(frame_count)
+            print("Writing file img_{}.jpg".format(frame_count))
             target = open("img_{}.jpg".format(frame_count), 'w')
             target.write(img_bytes)
             target.close()
 
         #put encoded image in kinesis stream
         if enable_kinesis:
-            print "Sending image to Kinesis"
+            print("Sending image to Kinesis")
             response = kinesis_client.put_record(
                 StreamName="FrameStream",
-                Data=cPickle.dumps(frame_package),
+                Data=pickle.dumps(frame_package),
                 PartitionKey="partitionkey"
             )
-            print response
+            print(response)
 
         if enable_rekog:
             response = rekog_client.detect_labels(
@@ -69,10 +69,10 @@ def send_jpg(frame_jpg, frame_count, enable_kinesis=True, enable_rekog=False, wr
                 MaxLabels=rekog_max_labels,
                 MinConfidence=rekog_min_conf
             )
-            print response
+            print(response)
 
     except Exception as e:
-        print e
+        print(e)
 
 
 def main():
@@ -91,19 +91,19 @@ def main():
         return
 
     print("Capturing from '{}' at a rate of 1 every {} frames...".format(ip_cam_url, capture_rate))
-    stream = urllib.urlopen(ip_cam_url)
+    stream = urllib.request.urlopen(ip_cam_url)
     
-    bytes = ''
+    bytes = b''
     pool = Pool(processes=3)
 
     frame_count = 0
     while True:
         # Capture frame-by-frame
-        frame_jpg = ''
+        frame_jpg = b''
 
         bytes += stream.read(16384*2)
-        b = bytes.rfind('\xff\xd9')
-        a = bytes.rfind('\xff\xd8', 0, b-1)
+        b = bytes.rfind(b'\xff\xd9')
+        a = bytes.rfind(b'\xff\xd8', 0, b-1)
 
 
         if a != -1 and b != -1:
@@ -118,16 +118,9 @@ def main():
                 #Rotating image 90 degrees to the left:
                 nparr = np.fromstring(frame_jpg_bytes, dtype=np.uint8)
                 
-                #Simple and efficient rotation: 90 degrees left = flip + transpose
+                #Rotate 90 degrees counterclockwise
                 img_cv2_mat = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-                rotated_img = cv2.transpose(cv2.flip(img_cv2_mat, 0))
-                
-                #Computationally-intensive rotation
-                # (h,w) = img_cv2_mat.shape[:2]
-                # center = (w/2, h/2)
-
-                # rot_mat = cv2.getRotationMatrix2D(center, -90, 1.0)
-                # rotated = cv2.warpAffine(img_cv2_mat, rot_mat, (w, h))
+                rotated_img = cv2.rotate(img_cv2_mat, cv2.ROTATE_90_COUNTERCLOCKWISE)
                 
                 retval, new_frame_jpg_bytes = cv2.imencode(".jpg", rotated_img)
 

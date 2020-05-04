@@ -4,12 +4,11 @@
 # or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions and limitations under the License.
 
 import sys
-import cPickle
+import pickle
 import datetime
 import cv2
 import boto3
 import time
-import cPickle
 from multiprocessing import Pool
 import pytz
 
@@ -47,13 +46,13 @@ def encode_and_send_frame(frame, frame_count, enable_kinesis=True, enable_rekog=
 
         #put encoded image in kinesis stream
         if enable_kinesis:
-            print "Sending image to Kinesis"
+            print("Sending image to Kinesis")
             response = kinesis_client.put_record(
                 StreamName="FrameStream",
-                Data=cPickle.dumps(frame_package),
+                Data=pickle.dumps(frame_package),
                 PartitionKey="partitionkey"
             )
-            print response
+            print(response)
 
         if enable_rekog:
             response = rekog_client.detect_labels(
@@ -63,10 +62,10 @@ def encode_and_send_frame(frame, frame_count, enable_kinesis=True, enable_rekog=
                 MaxLabels=rekog_max_labels,
                 MinConfidence=rekog_min_conf
             )
-            print response
+            print(response)
 
     except Exception as e:
-        print e
+        print(e)
 
 
 def main():
