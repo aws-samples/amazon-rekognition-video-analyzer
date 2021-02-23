@@ -12,6 +12,7 @@ import time
 import json
 import decimal
 from datetime import timedelta
+from botocore.client import Config
 
 
 class DecimalEncoder(json.JSONEncoder):
@@ -44,7 +45,7 @@ def fetch_frames(event, context):
 
     #Initialize clients
     dynamodb = boto3.resource('dynamodb')
-    s3_client = boto3.client('s3')
+    s3_client = boto3.client('s3', config=Config(signature_version='s3v4'))
     
     #Load config
     config = load_config()

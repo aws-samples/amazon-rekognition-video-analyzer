@@ -1,5 +1,5 @@
 {
-    "s3_pre_signed_url_expiry" : 2419200,
+    "s3_pre_signed_url_expiry" : 86400,
 
     "ddb_table" : "EnrichedFrame",
     "ddb_gsi_name" : "processed_year_month-processed_timestamp-index",
